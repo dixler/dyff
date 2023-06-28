@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/homeport/dyff/pkg/dyff"
+	"github.com/dixler/dyff/pkg/dyff"
 
 	. "github.com/gonvenience/bunt"
 )

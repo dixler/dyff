@@ -40,7 +40,7 @@ import (
 	"github.com/gonvenience/ytbx"
 	yamlv3 "gopkg.in/yaml.v3"
 
-	"github.com/homeport/dyff/pkg/dyff"
+	"github.com/dixler/dyff/pkg/dyff"
 )
 
 func TestCore(t *testing.T) {

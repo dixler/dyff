@@ -11,6 +11,8 @@
 
 ## Description
 
+*Note*: This is a fork that makes internal packages importable.
+
 A diff tool for YAML files, and sometimes JSON.
 
 `dyff` is inspired by the way the old [BOSH v1](https://bosh.io/) deployment output reported changes from one version to another by only showing the parts of a YAML file that change.
