@@ -28,7 +28,7 @@ import (
 	"github.com/gonvenience/neat"
 	"github.com/gonvenience/wrap"
 
-	"github.com/dixler/dyff/pkg/cmd"
+	"github.com/dixler/dyff/internal/cmd"
 )
 
 func main() {

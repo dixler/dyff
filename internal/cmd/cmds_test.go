@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	. "github.com/dixler/dyff/pkg/cmd"
+	. "github.com/dixler/dyff/internal/cmd"
 
 	"github.com/gonvenience/term"
 )

@@ -38,6 +38,69 @@ type betweenCmdOptions struct {
 
 var betweenCmdSettings betweenCmdOptions
 
+func Between(fromLocation, toLocation string) (dyff.Report, error) {
+	reportConfig := &reportConfig{
+		ignoreOrderChanges: true,
+		omitHeader:         true,
+	}
+	return reportConfig.betweenInner(fromLocation, toLocation)
+}
+
+func (rc *reportConfig) betweenInner(fromLocation, toLocation string) (dyff.Report, error) {
+	from, to, err := ytbx.LoadFiles(fromLocation, toLocation)
+	if err != nil {
+		return dyff.Report{}, wrap.Errorf(err, "failed to load input files")
+	}
+
+	// If the main change root flag is set, this (re-)sets the individual change roots of the two input files
+	if betweenCmdSettings.chroot != "" {
+		betweenCmdSettings.chrootFrom = betweenCmdSettings.chroot
+		betweenCmdSettings.chrootTo = betweenCmdSettings.chroot
+	}
+
+	// Change root of 'from' input file if change root flag for 'from' is set
+	if betweenCmdSettings.chrootFrom != "" {
+		if err = dyff.ChangeRoot(&from, betweenCmdSettings.chrootFrom, rc.useGoPatchPaths, betweenCmdSettings.translateListToDocuments); err != nil {
+			return dyff.Report{}, wrap.Errorf(err, "failed to change root of %s to path %s", from.Location, betweenCmdSettings.chrootFrom)
+		}
+	}
+
+	// Change root of 'to' input file if change root flag for 'to' is set
+	if betweenCmdSettings.chrootTo != "" {
+		if err = dyff.ChangeRoot(&to, betweenCmdSettings.chrootTo, rc.useGoPatchPaths, betweenCmdSettings.translateListToDocuments); err != nil {
+			return dyff.Report{}, wrap.Errorf(err, "failed to change root of %s to path %s", to.Location, betweenCmdSettings.chrootTo)
+		}
+	}
+
+	report, err := dyff.CompareInputFiles(from, to,
+		dyff.IgnoreOrderChanges(rc.ignoreOrderChanges),
+		dyff.KubernetesEntityDetection(rc.kubernetesEntityDetection),
+		dyff.AdditionalIdentifiers(rc.additionalIdentifiers...),
+	)
+
+	if err != nil {
+		return dyff.Report{}, wrap.Errorf(err, "failed to compare input files")
+	}
+
+	if rc.filters != nil {
+		report = report.Filter(rc.filters...)
+	}
+
+	if rc.filterRegexps != nil {
+		report = report.FilterRegexp(rc.filterRegexps...)
+	}
+
+	if rc.excludes != nil {
+		report = report.Exclude(rc.excludes...)
+	}
+
+	if rc.excludeRegexps != nil {
+		report = report.ExcludeRegexp(rc.excludeRegexps...)
+	}
+
+	return report, nil
+}
+
 // betweenCmd represents the between command
 var betweenCmd = &cobra.Command{
 	Use:   "between [flags] <from> <to>",
@@ -58,55 +121,10 @@ types are: YAML (http://yaml.org/) and JSON (http://json.org/).
 			toLocation = args[1]
 		}
 
-		from, to, err := ytbx.LoadFiles(fromLocation, toLocation)
-		if err != nil {
-			return wrap.Errorf(err, "failed to load input files")
-		}
-
-		// If the main change root flag is set, this (re-)sets the individual change roots of the two input files
-		if betweenCmdSettings.chroot != "" {
-			betweenCmdSettings.chrootFrom = betweenCmdSettings.chroot
-			betweenCmdSettings.chrootTo = betweenCmdSettings.chroot
-		}
-
-		// Change root of 'from' input file if change root flag for 'from' is set
-		if betweenCmdSettings.chrootFrom != "" {
-			if err = dyff.ChangeRoot(&from, betweenCmdSettings.chrootFrom, reportOptions.useGoPatchPaths, betweenCmdSettings.translateListToDocuments); err != nil {
-				return wrap.Errorf(err, "failed to change root of %s to path %s", from.Location, betweenCmdSettings.chrootFrom)
-			}
-		}
-
-		// Change root of 'to' input file if change root flag for 'to' is set
-		if betweenCmdSettings.chrootTo != "" {
-			if err = dyff.ChangeRoot(&to, betweenCmdSettings.chrootTo, reportOptions.useGoPatchPaths, betweenCmdSettings.translateListToDocuments); err != nil {
-				return wrap.Errorf(err, "failed to change root of %s to path %s", to.Location, betweenCmdSettings.chrootTo)
-			}
-		}
-
-		report, err := dyff.CompareInputFiles(from, to,
-			dyff.IgnoreOrderChanges(reportOptions.ignoreOrderChanges),
-			dyff.KubernetesEntityDetection(reportOptions.kubernetesEntityDetection),
-			dyff.AdditionalIdentifiers(reportOptions.additionalIdentifiers...),
-		)
+		report, err := reportOptions.betweenInner(fromLocation, toLocation)
 
 		if err != nil {
-			return wrap.Errorf(err, "failed to compare input files")
-		}
-
-		if reportOptions.filters != nil {
-			report = report.Filter(reportOptions.filters...)
-		}
-
-		if reportOptions.filterRegexps != nil {
-			report = report.FilterRegexp(reportOptions.filterRegexps...)
-		}
-
-		if reportOptions.excludes != nil {
-			report = report.Exclude(reportOptions.excludes...)
-		}
-
-		if reportOptions.excludeRegexps != nil {
-			report = report.ExcludeRegexp(reportOptions.excludeRegexps...)
+			return err
 		}
 
 		return writeReport(cmd, report)
